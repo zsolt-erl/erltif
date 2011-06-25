@@ -31,7 +31,7 @@
 %%% ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 %%% OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 %%% OUT OF THE USE OF THIS SOFTWARE, EVEN IF AsDVISED OF THE
-%%% POSSIBILITY OF SUCH DAMAGE. 
+%%% POSSIBILITY OF SUCH DAMAGE.
 
 %% @doc Socket library.
 %%
@@ -85,7 +85,7 @@ server_setup(Mod, Func, Args, LSock, Port, Opts, MaxCon=0) ->
   % When the maximum number of connections has been reached, wait
   % until a socket connection dies before starting any more accepts.
   receive
-    {'EXIT', Pid, Reason} ->
+    {'EXIT', _Pid, _Reason} ->
       server_setup(Mod, Func, Args, LSock, Port, Opts, MaxCon + 1)
   end;
 server_setup(Mod, Func, Args, LSock, Port, Opts, MaxCon) ->
@@ -118,10 +118,10 @@ server_loop(Mod, Func, Args, LSock, Port, Opts, MaxCon, Accepter) ->
 	    server_setup(Mod, Func, Args, LSock, Port, Opts, MaxCon - 1);
 	{Accepter, {error, closed}} ->
 	    server_setup(Mod, Func, Args, LSock, Port, Opts, MaxCon);
-	{Accepter, {error, Reason}} ->
+	{Accepter, {error, _Reason}} ->
 	    %% io:fwrite("accepter error: ~p~n", [Reason]),
 	    server_setup(Mod, Func, Args, LSock, Port, Opts, MaxCon);
-	{'EXIT', Pid, Reason} ->
+	{'EXIT', _Pid, _Reason} ->
 	    server_loop(Mod, Func, Args, LSock, Port, Opts, MaxCon + 1, Accepter);
 	stop ->
 	    io:format("Game over! Closing listening socket. Packing up.\n"),
@@ -212,7 +212,7 @@ coupler(Socket, Owner) ->
       coupler(Socket, Owner);
     {tcp_closed, Socket} ->
       ok;
-    {tcp_error, Socket, Reason} ->
+    {tcp_error, Socket, _Reason} ->
       ok;
     Msg ->
       gen_tcp:send(Socket, term_to_binary(Msg)),
@@ -225,7 +225,7 @@ coupler(Socket, Owner) ->
 
 %% closes the listening socket, shuts down the Accepter process and exits from the server_loop
 %% ServerPid is the Pid returned by ?MODULE:server/5
-%% Warning: this does not kill the already established connections since this module does not keep 
+%% Warning: this does not kill the already established connections since this module does not keep
 %% track of those Pids. Therefore to fully free up the Port the user of this module has to make sure
 %% that the connected processes exit and/or close their sockets
 server_stop(ServerPid) ->
