@@ -31,10 +31,10 @@
 %%% ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 %%% OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 %%% OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-%%% POSSIBILITY OF SUCH DAMAGE. 
+%%% POSSIBILITY OF SUCH DAMAGE.
 
 %% @doc Rudimentary TELNET server in Erlang.
-%% 
+%%
 %% @end
 
 -module(ce_telnet).
@@ -68,7 +68,7 @@
 %% was successfully received.
 
 start(Module, Function, Port, MaxCon) ->
-  TelnetServerPid = ce_socket:server(?MODULE, server, [Module, Function], Port,
+  _TelnetServerPid = ce_socket:server(?MODULE, server, [Module, Function], Port,
     [list, {active, true}, {nodelay, true}, {reuseaddr, true}, {packet, raw}],
     MaxCon).
 
@@ -85,7 +85,7 @@ stop(TelnetServerPid)->
 server(Socket, TelnetServerPid, Module, Function) ->
   % io:fwrite("connect ~p~n", [Socket]),
   gen_tcp:send(Socket, <<?IAC, ?DONT, ?ECHO>>),
-  gen_tcp:send(Socket, <<?IAC, ?DO, ?TRANSMIT_BINARY>>),  
+  gen_tcp:send(Socket, <<?IAC, ?DO, ?TRANSMIT_BINARY>>),
   Pid = spawn_link(Module, Function, [self(), TelnetServerPid]),
   loop(Socket, Pid, text, []).
 
@@ -111,32 +111,32 @@ loop(Socket, Pid, State, Buffer) ->
 	    loop(Socket, Pid, State, Buffer)
     end.
 
-reduce(Pid, State, []) ->
+reduce(_Pid, State, []) ->
   {State, []};
 reduce(Pid, text, [?IAC | Tail]) ->
   reduce(Pid, command, Tail);
 reduce(Pid, text, [Head | Tail]) ->
   Pid ! {self(), {byte, Head}}, reduce(Pid, text, Tail);
-reduce(Pid, command, [?WILL, X | Tail]) ->
+reduce(Pid, command, [?WILL, _X | Tail]) ->
   % io:fwrite("WILL ~p~n", [option(X)]),
   reduce(Pid, text, Tail);
-reduce(Pid, command, [?WONT, X | Tail]) ->
+reduce(Pid, command, [?WONT, _X | Tail]) ->
   % io:fwrite("WONT ~p~n", [option(X)]),
   reduce(Pid, text, Tail);
-reduce(Pid, command, [?DO, X | Tail]) ->
+reduce(Pid, command, [?DO, _X | Tail]) ->
   % io:fwrite("DO ~p~n", [option(X)]),
   reduce(Pid, text, Tail);
-reduce(Pid, command, [?DONT, X | Tail]) ->
+reduce(Pid, command, [?DONT, _X | Tail]) ->
   % io:fwrite("DONT ~p~n", [option(X)]),
   reduce(Pid, text, Tail);
-reduce(Pid, command, [X | Tail]) ->
+reduce(Pid, command, [_X | Tail]) ->
   % io:fwrite("?? ~p~n", [X]),
   reduce(Pid, text, Tail).
 
-option(?TRANSMIT_BINARY) -> 'TRANSMIT-BINARY';
-option(?ECHO) -> 'ECHO';
-option(?SUPPRESS_GO_AHEAD) -> 'SUPPRESS-GO-AHEAD';
-option(N) -> N.
+% option(?TRANSMIT_BINARY) -> 'TRANSMIT-BINARY';
+% option(?ECHO) -> 'ECHO';
+% option(?SUPPRESS_GO_AHEAD) -> 'SUPPRESS-GO-AHEAD';
+% option(N) -> N.
 
 %% interface %%
 
@@ -151,7 +151,7 @@ send(Telnet, Text) ->
 %% @doc Sends a text file to a telnet session.
 
 send_file(Telnet, FileName) ->
-  ce_file:each_line(fun(Line, Acc) ->
+  ce_file:each_line(fun(Line, _Acc) ->
       Line0 = ce_string:chomp(Line),
       Telnet ! {output, [Line0, "\n\r"]},
       ok
@@ -185,7 +185,7 @@ get_line(Telnet, Acc) ->
 %% @doc Gets a single character from a telnet session.
 
 get_char(Telnet) ->
-  get_char(Telnet, fun(X) -> true end).
+  get_char(Telnet, fun(_X) -> true end).
 get_char(Telnet, Fun) ->
   receive
     {Telnet, closed} ->

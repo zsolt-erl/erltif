@@ -31,7 +31,7 @@
 %%% ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 %%% OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 %%% OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-%%% POSSIBILITY OF SUCH DAMAGE. 
+%%% POSSIBILITY OF SUCH DAMAGE.
 
 %% @doc File manipulation library.
 %%
@@ -61,8 +61,8 @@
 
 exists(FileName) ->
   case file:read_file_info(FileName) of
-    {ok, Info} -> true;
-    _          -> false
+    {ok, _Info} -> true;
+    _           -> false
   end.
 
 %% @spec is_dir(filename()) -> true | false
@@ -144,15 +144,15 @@ is_binary(Filename) ->
     Other ->
       Other
   end.
-is_binary_block([], A) -> false;
-is_binary_block([0 | T], A) -> true;
+is_binary_block([], _A) -> false;
+is_binary_block([0 | _T], _A) -> true;
 is_binary_block(_, A) when A > 9830 -> true;
 is_binary_block([9  | T], A) -> is_binary_block(T, A);
 is_binary_block([10 | T], A) -> is_binary_block(T, A);
 is_binary_block([12 | T], A) -> is_binary_block(T, A);
 is_binary_block([13 | T], A) -> is_binary_block(T, A);
 is_binary_block([H  | T], A) when H >= 32; H =< 126 -> is_binary_block(T, A);
-is_binary_block([H  | T], A) -> is_binary_block(T, A+1).
+is_binary_block([_H  | T], A) -> is_binary_block(T, A+1).
 
 %% @spec size(filename()) -> integer()
 %% @doc Returns the size of a file, in bytes.
@@ -201,7 +201,7 @@ each_line(Fun, Acc, FileName) ->
 each_line_tail(Fun, Acc, Io) ->
   Line = io:get_line(Io, ''),
   case Line of
-    X when list(X) ->
+    X when is_list(X) ->
       each_line_tail(Fun, Fun(Line, Acc), Io);
     _ -> Acc
   end.
@@ -246,10 +246,10 @@ import(Fun, Acc, FileName, FileSchema) ->
   lists:reverse(ce_file:each_line(fun(L, FAcc) ->
     L0 = ce_string:chomp(L),
     case find_line_schema(L0, FileSchema) of
-      {Tag, Pattern, fields, [{delimiter, D}, {quote, Q} | Rest]} ->
+      {Tag, _Pattern, fields, [{delimiter, D}, {quote, Q} | _Rest]} ->
         C = ce_string:fields(L0, D, Q),
         Fun(Tag, C, FAcc);
-      {Tag, Pattern, columns, Schema} ->
+      {Tag, _Pattern, columns, Schema} ->
         C = ce_string:columns(L0, Schema),
         Fun(Tag, C, FAcc);
       _ ->
@@ -257,10 +257,10 @@ import(Fun, Acc, FileName, FileSchema) ->
     end
   end, Acc, FileName)).
 
-find_line_schema(Line, []) -> nil;
-find_line_schema(Line, [{Tag, Pattern, Type, Schema}=H | T]) ->
+find_line_schema(_Line, []) -> nil;
+find_line_schema(Line, [{_Tag, Pattern, _Type, _Schema}=H | T]) ->
   case regexp:match(Line, Pattern) of
-    {match, Start, Length} -> H;
+    {match, _Start, _Length} -> H;
     _ -> find_line_schema(Line, T)
   end.
 
@@ -272,7 +272,7 @@ find_line_schema(Line, [{Tag, Pattern, Type, Schema}=H | T]) ->
 %% found file which matches the predicate.
 %% Both funs are passed the full file name
 %% (up to but not including the top) as parameter.
-%% Return value is a list of the return values from the 
+%% Return value is a list of the return values from the
 %% action() fun.  Thanks to Klacke for providing the origin of this function.
 
 find(Dir, Pred, Action) ->
@@ -318,7 +318,7 @@ create(FileName, Length, Byte) ->
   create0(IoDevice, Length, Byte),
   file:close(IoDevice),
   ok.
-create0(IoDevice, 0, Byte) ->
+create0(_IoDevice, 0, _Byte) ->
   ok;
 create0(IoDevice, Length, Byte) when Length >= 64 ->
   List = lists:duplicate(64, Byte),
@@ -370,9 +370,9 @@ complete(DirName, PartialFileName) ->
   {ok, Dir} = file:list_dir(DirName),
   Dir0 = lists:reverse(lists:sort(Dir)),
   complete(DirName, Dir0, PartialFileName, length(PartialFileName), []).
-complete(DirName, [], PartialFileName, Length, []) -> {error, no_match};
-complete(DirName, [], PartialFileName, Length, [FileName]) -> {ok, FileName};
-complete(DirName, [], PartialFileName, Length, Acc) -> {ambiguous, Acc};
+complete(_DirName, [], _PartialFileName, _Length, []) -> {error, no_match};
+complete(_DirName, [], _PartialFileName, _Length, [FileName]) -> {ok, FileName};
+complete(_DirName, [], _PartialFileName, _Length, Acc) -> {ambiguous, Acc};
 complete(DirName, [FileName | Tail], PartialFileName, Length, Acc) ->
   case string:left(FileName, Length) of
     PartialFileName ->
