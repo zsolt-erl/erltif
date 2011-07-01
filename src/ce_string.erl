@@ -31,7 +31,7 @@
 %%% ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 %%% OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 %%% OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-%%% POSSIBILITY OF SUCH DAMAGE. 
+%%% POSSIBILITY OF SUCH DAMAGE.
 
 %% @doc String library.
 %%
@@ -82,11 +82,11 @@ pad(String, Width, centre) when Width > length(String) ->
 %% Should work on both 'nix and MS-DOS newlines.
 
 chomp([]) -> [];
-chomp(List) when list(List) ->
+chomp(List) when is_list(List) ->
   lists:reverse(chomp0(lists:reverse(List))).
 chomp0([]) -> [];
 chomp0([H | T]) when H == 10; H == 13 -> chomp0(T);
-chomp0([H | T]=L) -> L.
+chomp0([_H | _T]=L) -> L.
 
 %% @spec remove_eol(string()) -> string()
 %% @doc Removes a single newline from the end of a string.
@@ -115,8 +115,8 @@ remove_eol(S) ->
 %% @doc Joins strings with a delimeter between each part.
 
 join(P, L)           -> join0(P, L, []).
-join0(P, [], O)      -> O;
-join0(P, [X], O)     -> O ++ X;
+join0(_P, [], O)      -> O;
+join0(_P, [X], O)     -> O ++ X;
 join0(P, [X | T], O) -> join0(P, T, O ++ X ++ P).
 
 %% @spec join(string(), string(), [string()]) -> string()
@@ -125,8 +125,8 @@ join0(P, [X | T], O) -> join0(P, T, O ++ X ++ P).
 %% e.g. <code>join(", ", ", and ", ["A","B","C"]) -> "A, B, and C"</code>
 
 join(P, Q, L)          -> join0(P, Q, L, []).
-join0(P, Q, [], O)     -> O;
-join0(P, Q, [X], O)    -> O ++ X;
+join0(_P, _Q, [], O)     -> O;
+join0(_P, _Q, [X], O)    -> O ++ X;
 join0(P, Q, [X, Y], O) -> join0(P, Q, [Y], O ++ X ++ Q);
 join0(P, Q, [X | T], O)-> join0(P, Q,   T, O ++ X ++ P).
 
@@ -136,7 +136,7 @@ join0(P, Q, [X | T], O)-> join0(P, Q,   T, O ++ X ++ P).
 uc(L) -> uc(L, []).
 uc([], A) -> A;
 uc([H|T], A) -> uc(T, A ++ [uc(H)]);
-uc(L, A) -> toupper(L).
+uc(L, _A) -> toupper(L).
 
 %% @spec lc(string()) -> string()
 %% @doc Translates a string to lowercase. Also flattens the list.
@@ -144,7 +144,7 @@ uc(L, A) -> toupper(L).
 lc(L) -> lc(L, []).
 lc([], A) -> A;
 lc([H|T], A) -> lc(T, A ++ [lc(H)]);
-lc(L, A) -> tolower(L).
+lc(L, _A) -> tolower(L).
 
 %% @spec caps(string() | atom()) -> string()
 %% @equiv caps(String, {$ , $ })
@@ -156,17 +156,17 @@ caps(S) -> caps(S, {$ , $ }).
 %% Also translates one character to another, typically for turning
 %% underscores into hyphens or spaces for human-readability.
 
-caps(S, {From, To}) when atom(S) -> caps(atom_to_list(S), {From, To});
-caps(S, {From, To}) when list(S) -> caps(S, {From, To}, [], $ ).
+caps(S, {From, To}) when is_atom(S) -> caps(atom_to_list(S), {From, To});
+caps(S, {From, To}) when is_list(S) -> caps(S, {From, To}, [], $ ).
 
-caps([], {From, To}, Acc, Last) ->
+caps([], {_From, _To}, Acc, _Last) ->
   lists:reverse(Acc);
-caps([From | T], {From, To}, Acc, Last) ->
+caps([From | T], {From, To}, Acc, _Last) ->
   caps(T, {From, To}, [To | Acc], To);
 caps([H | T], {From, To}, Acc, Last)
  when Last >= $a, Last =< $z; Last >= $A, Last =< $Z ->
   caps(T, {From, To}, [tolower(H) | Acc], H);
-caps([H | T], {From, To}, Acc, Last) ->
+caps([H | T], {From, To}, Acc, _Last) ->
   caps(T, {From, To}, [toupper(H) | Acc], H).
 
 toupper(X) when X >= $a, X =< $z -> X + ($A - $a);
@@ -180,7 +180,7 @@ tolower(X)                       -> X.
 %% e.g. split($+, "a+b++c") -> ["a", "b", "", "c"]
 
 split(D, L) -> split(D, L, [], []).
-split(D, [], A, A0) -> lists:reverse([A0] ++ A);
+split(_D, [], A, A0) -> lists:reverse([A0] ++ A);
 split(D, [D | T], A, A0) ->
   split(D, T, [lists:reverse(A0) | A], []);
 split(D, [H | T], A, A0) ->
@@ -205,7 +205,7 @@ keyvalue(String, Delim) ->
     [] ->
       {"", ""}
   end.
-	
+
 %% @spec fields(string(), string(), string()) -> [string()]
 %% @doc Translates string into list of strings by fields.
 %% e.g. <code>fields("a,'b,c',d", ",", "'") -> ["a","b,c","d"]</code>
@@ -222,15 +222,15 @@ fields(String, Delim, Quote) ->
   ],
   case ce_parser:scan(String, TokenSpecs) of
     {ok, C} ->
-      C0 = lists:foldl(fun({TokenType, String}, A) when list(String) ->
-                            [String | A];
+      C0 = lists:foldl(fun({_TokenType, String0}, A) when is_list(String0) ->
+                            [String0 | A];
                           (_, A) ->
                             A
                        end, [], C),
       C1 = ce_lists:between(Delim, lists:reverse(C0)),
       C2 = lists:map(fun(X) ->
 	                 case regexp:match(X, QuotePat) of
-			   {match, Start, Length} ->
+			   {match, _Start, _Length} ->
 			     tl(ce_lists:trunc(X));
 			   _ ->
 			     X
@@ -247,7 +247,7 @@ fields(String, Delim, Quote) ->
 %% e.g. <code>columns("1234567890", [{2,3},{8,2}]) -> ["234", "89"]</code>
 
 columns(String, Schema) -> lists:reverse(columns(String, Schema, [])).
-columns(String, [], Acc) -> Acc;
+columns(_String, [], Acc) -> Acc;
 columns(String, [{Column, Width} | T], Acc) ->
   Field = ce_string:extract(String, Column, Width),
   columns(String, T, [Field | Acc]).
@@ -277,27 +277,27 @@ strip_quotes(S) -> strip_quotes(S, $").
 %% @spec strip_quotes(string(), char()) -> string()
 %% @doc Strips leading and trailing quotes from a string.
 
-strip_quotes("", Q) -> "";
-strip_quotes([C], Q) -> C;
+strip_quotes("", _Q) -> "";
+strip_quotes([C], _Q) -> C;
 strip_quotes(S=[Q | T], Q) ->
   case lists:last(T) of
     Q -> ce_lists:trunc(T);
     _ -> S
   end;
-strip_quotes(S, Q) -> S.
+strip_quotes(S, _Q) -> S.
 
 %% @spec unescape(string()) -> string()
 %% @doc Unescapes backslash-escaped sequences in a string.
 
-unescape(S) -> unescape(S, []).
-unescape([], A) -> lists:reverse(A);
-unescape([92, 92 | T], A) -> unescape(T, [A | "\\"]);
-unescape([92, $b | T], A) -> unescape(T, [A | "\b"]);
-unescape([92, $t | T], A) -> unescape(T, [A | "\t"]);
-unescape([92, $n | T], A) -> unescape(T, [A | "\n"]);
-unescape([92, $r | T], A) -> unescape(T, [A | "\r"]);
-% todo: any others...
-unescape([H | T], A) -> unescape(T, [A | H]).
+% unescape(S) -> unescape(S, []).
+% unescape([], A) -> lists:reverse(A);
+% unescape([92, 92 | T], A) -> unescape(T, [A | "\\"]);
+% unescape([92, $b | T], A) -> unescape(T, [A | "\b"]);
+% unescape([92, $t | T], A) -> unescape(T, [A | "\t"]);
+% unescape([92, $n | T], A) -> unescape(T, [A | "\n"]);
+% unescape([92, $r | T], A) -> unescape(T, [A | "\r"]);
+% % todo: any others...
+% unescape([H | T], A) -> unescape(T, [A | H]).
 
 %%% END of ce_string.erl %%%
 
